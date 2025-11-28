@@ -221,30 +221,26 @@
                 showStatus('Procesando tu registro...', 'info');
 
                 const formData = new FormData(form);
-                const data = Object.fromEntries(formData.entries());
 
                 // ------------------------------------------
-                // USO DE XMLHttpRequest PARA EVITAR CORS/FETCH
+                // FIX: ENVIAR FormData directamente. 
+                // Esto permite que el navegador use Content-Type: multipart/form-data 
+                // lo cual es más tolerado por Apps Script cross-origin.
+                // IMPORTANTE: No se establece el Content-Type manualmente.
                 // ------------------------------------------
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', GOOGLE_SHEET_WEB_APP_URL);
                 
-                // Google Apps Script requiere los datos en formato URL-encoded para doPost(e)
-                // si no se ha configurado para recibir JSON explícitamente.
-                // Usamos URLSearchParams para formatear los datos correctamente.
-                const params = new URLSearchParams(data).toString();
-
                 xhr.onload = function() {
                     setFormState(false);
-                    // Apps Script siempre devuelve status 200 si la función doPost se ejecuta, 
-                    // independientemente de si el guardado fue exitoso o no, porque no devuelve 
-                    // encabezados CORS.
+                    
+                    // Si el servidor de Google responde, incluso con una redirección 302 (típica) o éxito 200, 
+                    // asumimos que el script se ejecutó.
                     if (xhr.status === 200 || xhr.status === 302 || xhr.responseText.length === 0) {
-                        // Asumimos éxito si se completó la solicitud a Apps Script
                         showStatus('✅ ¡Registro exitoso! Gracias por registrarte.', 'success');
                         form.reset();
                     } else {
-                        // Manejo de errores de red o servidor no concluyentes
+                        // Respuesta inesperada o error de servidor
                         showStatus(`❌ Error al registrar. Revisa la consola o tu Apps Script. (Status: ${xhr.status})`, 'error');
                         console.error("Respuesta de XHR:", xhr.responseText);
                     }
@@ -252,12 +248,13 @@
 
                 xhr.onerror = function() {
                     setFormState(false);
+                    // Este es el error de red real, diferente al bloqueo CORS.
                     showStatus('❌ Error de red o fallo de conexión. Intenta de nuevo.', 'error');
                 };
 
-                // Enviamos los datos como un formulario URL-encoded
-                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-                xhr.send(params);
+                // Enviar el objeto FormData directamente, permitiendo que el navegador establezca 
+                // Content-Type: multipart/form-data con boundary.
+                xhr.send(formData);
             });
         });
     </script>
