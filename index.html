@@ -20,14 +20,7 @@
             --brand-blue: #0d6efd; 
         }
 
-        /* Ajustes de Tailwind para usar variables CSS o colores directos */
-        .bg-brand-blue { background-color: var(--brand-blue); }
-        .text-brand-blue { color: var(--brand-blue); }
-        .focus-ring-brand-blue:focus {
-            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25); 
-        }
-
-        /* Estilos personalizados para animaciones sutiles y enfoque */
+        /* Estilos de enfoque para inputs */
         .input-field {
             transition: all 0.3s ease;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -37,6 +30,7 @@
             box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
             transform: translateY(-1px);
         }
+        /* Estilos del botón de envío */
         .submit-button {
             transition: all 0.3s ease;
             background-color: var(--brand-blue); 
@@ -51,13 +45,12 @@
             cursor: not-allowed;
         }
         
-        /* 1. Fondo con degradado: Verde Agua a Celeste */
+        /* Fondo con degradado: Verde Agua a Celeste */
         .hero-background {
-            /* Degradado de Verde Agua (claro) a Celeste (claro) */
             background: linear-gradient(135deg, #a8e0f0 0%, #b3e0ff 100%); 
         }
         
-        /* 2. Estilo del contenedor del formulario: Gris Claro */
+        /* Estilo del contenedor del formulario: Gris Claro */
         .form-container {
             background-color: var(--form-bg-light-gray);
         }
@@ -67,7 +60,6 @@
 
     <!-- Contenedor Principal del Formulario -->
     <main class="w-full max-w-lg mx-auto my-10">
-        <!-- Aplicamos la clase .form-container al div del formulario -->
         <div class="form-container p-6 sm:p-10 rounded-xl shadow-2xl border border-gray-300">
             <h1 class="text-3xl font-extrabold text-gray-800 mb-2 text-center">Regístrate Aquí</h1>
             <p class="text-gray-600 mb-8 text-center">Completa tus datos</p>
@@ -147,14 +139,8 @@
             const telefonoInput = document.getElementById('telefono');
             const correoInput = document.getElementById('correo');
 
-            // --------------------------------------------------------------------------------------
-            // PASO CRÍTICO: REEMPLAZA ESTA VARIABLE CON LA URL DE TU GOOGLE APPS SCRIPT WEB APP
-            // --------------------------------------------------------------------------------------
-            // Usando la URL que proporcionaste:
+            // URL del Apps Script (la URL 'exec' que acepta POSTs)
             const GOOGLE_SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby_i2RXWN6J7zZn9jrpY26_tPH3prTYTr4HBy0WPdgP9-6KnfWxhL1bAvXlL1bp9pNLNw/exec'; 
-            // --------------------------------------------------------------------------------------
-
-            const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
             function showStatus(message, type = 'success') {
                 statusMessage.textContent = message;
@@ -171,7 +157,6 @@
 
             function setFormState(isLoading) {
                 submitButton.disabled = isLoading;
-                // Deshabilitar todos los campos mientras carga
                 form.querySelectorAll('input, button').forEach(el => {
                     if (el !== submitButton) el.disabled = isLoading;
                 });
@@ -182,9 +167,11 @@
 
             function validateForm() {
                 let isValid = true;
+                const nombreInput = document.getElementById('nombre');
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const emailError = document.getElementById('emailError');
 
                 // Validación de Nombre
-                const nombreInput = document.getElementById('nombre');
                 if (!nombreInput.value.trim()) {
                     nombreInput.classList.add('border-red-500');
                     isValid = false;
@@ -192,9 +179,7 @@
                     nombreInput.classList.remove('border-red-500');
                 }
 
-                // Validación de Correo BÁSICA (requerido)
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                const emailError = document.getElementById('emailError');
+                // Validación de Correo
                 if (!correoInput.value.trim() || !emailRegex.test(correoInput.value.trim())) {
                     correoInput.classList.add('border-red-500');
                     emailError.classList.remove('hidden');
@@ -215,7 +200,7 @@
                 telefonoInput.value = telefonoInput.value.replace(/[^0-9+ ]/g, '');
             });
             
-            // Quita la validación visual al escribir en los campos requeridos
+            // Quita la validación visual al escribir
             document.getElementById('nombre').addEventListener('input', () => {
                  document.getElementById('nombre').classList.remove('border-red-500');
             });
@@ -225,11 +210,11 @@
             });
 
 
-            form.addEventListener('submit', async (event) => {
+            form.addEventListener('submit', (event) => {
                 event.preventDefault();
 
                 if (!validateForm()) {
-                    return; // Detiene el envío si la validación falla
+                    return; 
                 }
 
                 setFormState(true);
@@ -238,77 +223,41 @@
                 const formData = new FormData(form);
                 const data = Object.fromEntries(formData.entries());
 
-                const maxRetries = 3;
-                let success = false;
-                let lastError = null;
+                // ------------------------------------------
+                // USO DE XMLHttpRequest PARA EVITAR CORS/FETCH
+                // ------------------------------------------
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', GOOGLE_SHEET_WEB_APP_URL);
+                
+                // Google Apps Script requiere los datos en formato URL-encoded para doPost(e)
+                // si no se ha configurado para recibir JSON explícitamente.
+                // Usamos URLSearchParams para formatear los datos correctamente.
+                const params = new URLSearchParams(data).toString();
 
-                for (let i = 0; i < maxRetries; i++) {
-                    try {
-                        // Usamos fetch con modo 'cors' para Google Apps Script
-                        const response = await fetch(GOOGLE_SHEET_WEB_APP_URL, {
-                            method: 'POST',
-                            mode: 'cors', // Cambiado a 'cors'
-                            cache: 'no-cache',
-                            headers: {
-                                // Content-Type ya no se envía con FormData, pero lo usamos al enviar JSON
-                                'Content-Type': 'application/json',
-                            },
-                            // Enviamos los datos como JSON para que el Apps Script lo reciba fácilmente
-                            body: JSON.stringify(data),
-                        });
-
-                        // Apps Script con doPost suele retornar 200/204 o una respuesta opaca
-                        // Si asumimos que Apps Script devuelve un JSON de éxito:
-                        let resultData = {};
-                        try {
-                            // Intentamos parsear el JSON solo si la respuesta es exitosa
-                            if (response.ok) {
-                                // Para Apps Script, a menudo una respuesta exitosa es solo un 200 sin cuerpo JSON parseable
-                                // Si tu Apps Script NO devuelve JSON, descomenta la siguiente línea y elimina el try/catch anidado:
-                                // success = true; 
-                                // break;
-                                
-                                // Si Apps Script devuelve ContentService.createTextOutput(JSON.stringify({result:'success'})):
-                                resultData = await response.json();
-                                if (resultData.result === 'success' || response.ok) {
-                                    success = true;
-                                    break;
-                                }
-                            }
-
-                        } catch (e) {
-                            // Si falla la lectura de JSON (ej: Apps Script devuelve solo texto o HTML)
-                            if (response.ok) { 
-                                success = true; // Asumimos éxito si el status es OK (200-299)
-                                break;
-                            }
-                            lastError = `Fallo al leer respuesta del servidor (${e.message})`;
-                        }
-                        
-                        // Error si response.ok es false (4xx o 5xx)
-                        if (!success) {
-                            lastError = `Fallo al intentar el envío (Status: ${response.status})`;
-                        }
-
-
-                    } catch (error) {
-                        lastError = error.message || 'Error de red. Verifique su conexión.';
-                        // console.error(`Intento ${i + 1} fallido:`, error);
-                        if (i < maxRetries - 1) {
-                            const delay = Math.pow(2, i) * 1000;
-                            await sleep(delay); 
-                        }
+                xhr.onload = function() {
+                    setFormState(false);
+                    // Apps Script siempre devuelve status 200 si la función doPost se ejecuta, 
+                    // independientemente de si el guardado fue exitoso o no, porque no devuelve 
+                    // encabezados CORS.
+                    if (xhr.status === 200 || xhr.status === 302 || xhr.responseText.length === 0) {
+                        // Asumimos éxito si se completó la solicitud a Apps Script
+                        showStatus('✅ ¡Registro exitoso! Gracias por registrarte.', 'success');
+                        form.reset();
+                    } else {
+                        // Manejo de errores de red o servidor no concluyentes
+                        showStatus(`❌ Error al registrar. Revisa la consola o tu Apps Script. (Status: ${xhr.status})`, 'error');
+                        console.error("Respuesta de XHR:", xhr.responseText);
                     }
-                }
+                };
 
-                setFormState(false);
+                xhr.onerror = function() {
+                    setFormState(false);
+                    showStatus('❌ Error de red o fallo de conexión. Intenta de nuevo.', 'error');
+                };
 
-                if (success) {
-                    showStatus('✅ ¡Registro exitoso! Gracias por registrarte.', 'success');
-                    form.reset();
-                } else {
-                    showStatus(`❌ Error al procesar tu registro después de ${maxRetries} intentos. ${lastError}.`, 'error');
-                }
+                // Enviamos los datos como un formulario URL-encoded
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                xhr.send(params);
             });
         });
     </script>
