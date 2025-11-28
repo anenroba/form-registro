@@ -11,12 +11,12 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f7fafc; /* Fondo gris muy claro - será cubierto por el degradado */
+            background-color: #f7fafc; 
         }
         
-        /* Colores base y ajustes de la marca (manteniendo el azul para el botón/énfasis) */
+        /* Colores base y ajustes de la marca */
         :root {
-            --form-bg-light-gray: #f2f4f8; /* Nuevo gris claro para el formulario */
+            --form-bg-light-gray: #f2f4f8; 
             --brand-blue: #0d6efd; 
         }
 
@@ -24,7 +24,7 @@
         .bg-brand-blue { background-color: var(--brand-blue); }
         .text-brand-blue { color: var(--brand-blue); }
         .focus-ring-brand-blue:focus {
-            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25); /* Sombra de enfoque con el azul */
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25); 
         }
 
         /* Estilos personalizados para animaciones sutiles y enfoque */
@@ -33,21 +33,21 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         .input-field:focus {
-            border-color: var(--brand-blue); /* Azul de la marca */
+            border-color: var(--brand-blue); 
             box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
             transform: translateY(-1px);
         }
         .submit-button {
             transition: all 0.3s ease;
-            background-color: var(--brand-blue); /* Azul de la marca */
+            background-color: var(--brand-blue); 
         }
         .submit-button:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            background-color: #0b5ed7; /* Azul ligeramente más oscuro al pasar el mouse */
+            background-color: #0b5ed7; 
         }
         .submit-button:disabled {
-            background-color: #6ea8fe; /* Azul más claro cuando está deshabilitado */
+            background-color: #6ea8fe; 
             cursor: not-allowed;
         }
         
@@ -96,6 +96,7 @@
                     <input type="email" id="correo" name="Correo" required
                            class="input-field w-full p-3 border border-gray-300 rounded-lg focus:outline-none"
                            placeholder="ejemplo@dominio.cl">
+                    <p id="emailError" class="text-xs text-red-500 mt-1 hidden">Por favor, ingresa un correo electrónico válido.</p>
                 </div>
 
                 <!-- Campo Teléfono (Opcional) -->
@@ -115,11 +116,11 @@
                 </div>
 
                 <!-- Área de Mensaje/Estado -->
-                <div id="statusMessage" class="py-2 text-center rounded-lg font-medium hidden" role="status"></div>
+                <div id="statusMessage" class="py-2 px-4 text-center rounded-lg font-medium hidden" role="status"></div>
 
                 <!-- Botón de Envío -->
                 <button type="submit" id="submitButton"
-                        class="submit-button w-full flex items-center justify-center p-3 text-white rounded-lg font-semibold focus:outline-none focus:ring-4 focus-ring-brand-blue">
+                         class="submit-button w-full flex items-center justify-center p-3 text-white rounded-lg font-semibold focus:outline-none focus:ring-4 focus-ring-brand-blue">
                     <span id="buttonText">Registrarse</span>
                     <div id="loadingSpinner" class="hidden ml-3 h-5 w-5 border-2 border-t-2 border-white rounded-full animate-spin"></div>
                 </button>
@@ -143,12 +144,13 @@
             const submitButton = document.getElementById('submitButton');
             const buttonText = document.getElementById('buttonText');
             const loadingSpinner = document.getElementById('loadingSpinner');
+            const telefonoInput = document.getElementById('telefono');
+            const correoInput = document.getElementById('correo');
 
             // --------------------------------------------------------------------------------------
             // PASO CRÍTICO: REEMPLAZA ESTA VARIABLE CON LA URL DE TU GOOGLE APPS SCRIPT WEB APP
             // --------------------------------------------------------------------------------------
-            // Necesitas configurar un script de Google Apps Script que acepte solicitudes POST
-            // y escriba los datos en una hoja de cálculo.
+            // Usando la URL que proporcionaste:
             const GOOGLE_SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby_i2RXWN6J7zZn9jrpY26_tPH3prTYTr4HBy0WPdgP9-6KnfWxhL1bAvXlL1bp9pNLNw/exec'; 
             // --------------------------------------------------------------------------------------
 
@@ -169,16 +171,65 @@
 
             function setFormState(isLoading) {
                 submitButton.disabled = isLoading;
+                // Deshabilitar todos los campos mientras carga
+                form.querySelectorAll('input, button').forEach(el => {
+                    if (el !== submitButton) el.disabled = isLoading;
+                });
+
                 buttonText.textContent = isLoading ? 'Registrando...' : 'Registrarse';
                 loadingSpinner.classList.toggle('hidden', !isLoading);
             }
 
+            function validateForm() {
+                let isValid = true;
+
+                // Validación de Nombre
+                const nombreInput = document.getElementById('nombre');
+                if (!nombreInput.value.trim()) {
+                    nombreInput.classList.add('border-red-500');
+                    isValid = false;
+                } else {
+                    nombreInput.classList.remove('border-red-500');
+                }
+
+                // Validación de Correo BÁSICA (requerido)
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const emailError = document.getElementById('emailError');
+                if (!correoInput.value.trim() || !emailRegex.test(correoInput.value.trim())) {
+                    correoInput.classList.add('border-red-500');
+                    emailError.classList.remove('hidden');
+                    isValid = false;
+                } else {
+                    correoInput.classList.remove('border-red-500');
+                    emailError.classList.add('hidden');
+                }
+
+                if (!isValid) {
+                    showStatus('Por favor, completa los campos obligatorios correctamente.', 'error');
+                }
+                return isValid;
+            }
+
+            // Limpia el teléfono de caracteres no numéricos
+            telefonoInput.addEventListener('input', () => {
+                telefonoInput.value = telefonoInput.value.replace(/[^0-9+ ]/g, '');
+            });
+            
+            // Quita la validación visual al escribir en los campos requeridos
+            document.getElementById('nombre').addEventListener('input', () => {
+                 document.getElementById('nombre').classList.remove('border-red-500');
+            });
+            correoInput.addEventListener('input', () => {
+                 correoInput.classList.remove('border-red-500');
+                 document.getElementById('emailError').classList.add('hidden');
+            });
+
+
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
 
-                if (GOOGLE_SHEET_WEB_APP_URL === 'https://script.google.com/macros/s/AKfycby_i2RXWN6J7zZn9jrpY26_tPH3prTYTr4HBy0WPdgP9-6KnfWxhL1bAvXlL1bp9pNLNw/exec') {
-                    showStatus('ERROR: Por favor, reemplaza la variable GOOGLE_SHEET_WEB_APP_URL con tu enlace de Apps Script.', 'error');
-                    return;
+                if (!validateForm()) {
+                    return; // Detiene el envío si la validación falla
                 }
 
                 setFormState(true);
@@ -193,26 +244,56 @@
 
                 for (let i = 0; i < maxRetries; i++) {
                     try {
+                        // Usamos fetch con modo 'cors' para Google Apps Script
                         const response = await fetch(GOOGLE_SHEET_WEB_APP_URL, {
                             method: 'POST',
-                            mode: 'no-cors',
+                            mode: 'cors', // Cambiado a 'cors'
                             cache: 'no-cache',
                             headers: {
+                                // Content-Type ya no se envía con FormData, pero lo usamos al enviar JSON
                                 'Content-Type': 'application/json',
                             },
+                            // Enviamos los datos como JSON para que el Apps Script lo reciba fácilmente
                             body: JSON.stringify(data),
                         });
 
-                        if (response.type === 'opaque' || response.status === 200 || response.status === 0) {
-                            success = true;
-                            break;
+                        // Apps Script con doPost suele retornar 200/204 o una respuesta opaca
+                        // Si asumimos que Apps Script devuelve un JSON de éxito:
+                        let resultData = {};
+                        try {
+                            // Intentamos parsear el JSON solo si la respuesta es exitosa
+                            if (response.ok) {
+                                // Para Apps Script, a menudo una respuesta exitosa es solo un 200 sin cuerpo JSON parseable
+                                // Si tu Apps Script NO devuelve JSON, descomenta la siguiente línea y elimina el try/catch anidado:
+                                // success = true; 
+                                // break;
+                                
+                                // Si Apps Script devuelve ContentService.createTextOutput(JSON.stringify({result:'success'})):
+                                resultData = await response.json();
+                                if (resultData.result === 'success' || response.ok) {
+                                    success = true;
+                                    break;
+                                }
+                            }
+
+                        } catch (e) {
+                            // Si falla la lectura de JSON (ej: Apps Script devuelve solo texto o HTML)
+                            if (response.ok) { 
+                                success = true; // Asumimos éxito si el status es OK (200-299)
+                                break;
+                            }
+                            lastError = `Fallo al leer respuesta del servidor (${e.message})`;
                         }
                         
-                        lastError = `Fallo al intentar el envío (Status: ${response.status})`;
+                        // Error si response.ok es false (4xx o 5xx)
+                        if (!success) {
+                            lastError = `Fallo al intentar el envío (Status: ${response.status})`;
+                        }
+
 
                     } catch (error) {
                         lastError = error.message || 'Error de red. Verifique su conexión.';
-                        console.error(`Intento ${i + 1} fallido:`, error);
+                        // console.error(`Intento ${i + 1} fallido:`, error);
                         if (i < maxRetries - 1) {
                             const delay = Math.pow(2, i) * 1000;
                             await sleep(delay); 
