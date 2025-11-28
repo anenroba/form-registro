@@ -149,7 +149,7 @@
             // --------------------------------------------------------------------------------------
             // Necesitas configurar un script de Google Apps Script que acepte solicitudes POST
             // y escriba los datos en una hoja de cálculo.
-            const GOOGLE_SHEET_WEB_APP_URL = 'TU_URL_DEL_APPS_SCRIPT_AQUI'; 
+            const GOOGLE_SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby_i2RXWN6J7zZn9jrpY26_tPH3prTYTr4HBy0WPdgP9-6KnfWxhL1bAvXlL1bp9pNLNw/exec'; 
             // --------------------------------------------------------------------------------------
 
             const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -176,7 +176,7 @@
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
 
-                if (GOOGLE_SHEET_WEB_APP_URL === 'TU_URL_DEL_APPS_SCRIPT_AQUI') {
+                if (GOOGLE_SHEET_WEB_APP_URL === 'https://script.google.com/macros/s/AKfycby_i2RXWN6J7zZn9jrpY26_tPH3prTYTr4HBy0WPdgP9-6KnfWxhL1bAvXlL1bp9pNLNw/exec') {
                     showStatus('ERROR: Por favor, reemplaza la variable GOOGLE_SHEET_WEB_APP_URL con tu enlace de Apps Script.', 'error');
                     return;
                 }
